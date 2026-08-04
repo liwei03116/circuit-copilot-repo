@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Circuit Copilot — describe it, we'll wire it</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0B141C;
+    --panel:#0F1E17;
+    --panel-2:#12271D;
+    --copper:#C97D4B;
+    --cyan:#6FE7D6;
+    --silk:#EDF3F0;
+    --silk-dim:#9FB0AA;
+    --amber:#E8A33D;
+    --line:#1F3A2C;
+    --radius:3px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 1px 1px, rgba(111,231,214,0.06) 1px, transparent 1px) 0 0/28px 28px,
+      var(--ink);
+    color:var(--silk);
+    font-family:'IBM Plex Sans', sans-serif;
+    min-height:100vh;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
+  }
+  a{color:inherit;}
+  .wrap{max-width:980px;margin:0 auto;padding:0 20px;}
+
+  /* nav */
+  nav{
+    border-bottom:1px solid var(--line);
+    padding:18px 0;
+  }
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;}
+  .brand{
+    font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:15px;letter-spacing:-0.01em;
+    display:flex;align-items:center;gap:8px;
+  }
+  .brand .dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);display:inline-block;}
+  .brand span{color:var(--copper);}
+  .nav-cta{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.04em;
+    border:1px solid var(--copper);color:var(--copper);padding:8px 16px;border-radius:var(--radius);
+    text-decoration:none;transition:background .15s,color .15s;
+  }
+  .nav-cta:hover{background:var(--copper);color:var(--ink);}
+
+  /* hero */
+  .hero{padding:72px 0 56px;display:grid;grid-template-columns:1.1fr 0.9fr;gap:40px;align-items:center;}
+  @media (max-width:820px){.hero{grid-template-columns:1fr;padding:48px 0 40px;}}
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--cyan);margin-bottom:14px;display:flex;align-items:center;gap:8px;
+  }
+  .eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);display:inline-block;}
+  h1{
+    font-family:'IBM Plex Mono',monospace;font-weight:700;
+    font-size:clamp(32px,5vw,52px);line-height:1.08;letter-spacing:-0.015em;margin:0 0 18px;
+  }
+  h1 em{font-style:normal;color:var(--copper);}
+  .lede{font-size:16px;line-height:1.65;color:var(--silk-dim);max-width:480px;margin:0 0 30px;}
+
+  .cta-row{display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
+  .btn-primary{
+    background:var(--copper);color:var(--ink);border:none;text-decoration:none;
+    padding:15px 26px;border-radius:var(--radius);
+    font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:14px;letter-spacing:.03em;
+    display:inline-flex;align-items:center;gap:10px;
+    transition:background .15s, transform .1s;
+  }
+  .btn-primary:hover{background:#dd9563;}
+  .btn-primary:active{transform:scale(0.99);}
+  .btn-primary svg{transition:transform .15s;}
+  .btn-primary:hover svg{transform:translateX(3px);}
+  .btn-note{font-size:12px;color:var(--silk-dim);font-family:'IBM Plex Mono',monospace;}
+
+  /* hero diagram */
+  .hero-art{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);padding:18px;}
+  .hero-art-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--silk-dim);margin-bottom:10px;}
+  .trace-flow{stroke-dasharray:4 5;animation:flow 1.2s linear infinite;}
+  @keyframes flow{to{stroke-dashoffset:-18;}}
+  .pulse{animation:pulse 2.4s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.55;}}
+
+  /* section shared */
+  section{padding:52px 0;border-top:1px solid var(--line);}
+  .section-eyebrow{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--copper);margin-bottom:10px;
+  }
+  h2{font-family:'IBM Plex Mono',monospace;font-size:clamp(22px,3vw,28px);margin:0 0 14px;letter-spacing:-0.01em;}
+  .section-lede{color:var(--silk-dim);font-size:14.5px;line-height:1.65;max-width:600px;margin:0 0 36px;}
+
+  /* feature grid */
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  @media (max-width:760px){.grid3{grid-template-columns:1fr;}}
+  .feat{border:1px solid var(--line);border-radius:var(--radius);padding:20px;background:var(--panel);}
+  .feat-icon{margin-bottom:14px;}
+  .feat h3{font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--silk);margin:0 0 8px;}
+  .feat p{font-size:13px;line-height:1.6;color:var(--silk-dim);margin:0;}
+
+  /* how it works */
+  .steps{list-style:none;margin:0;padding:0;counter-reset:step;display:flex;flex-direction:column;}
+  .step{
+    display:grid;grid-template-columns:44px 1fr;gap:16px;padding:20px 0;border-bottom:1px solid var(--line);
+  }
+  .step:first-child{padding-top:0;}
+  .step:last-child{border-bottom:none;padding-bottom:0;}
+  .step-num{
+    counter-increment:step;font-family:'IBM Plex Mono',monospace;color:var(--copper);font-weight:700;font-size:15px;
+    display:flex;align-items:flex-start;padding-top:2px;
+  }
+  .step-num::before{content:counter(step, decimal-leading-zero);}
+  .step h3{margin:0 0 6px;font-size:15px;font-family:'IBM Plex Mono',monospace;color:var(--silk);}
+  .step p{margin:0;font-size:13.5px;color:var(--silk-dim);line-height:1.6;max-width:560px;}
+
+  /* platform toggle preview */
+  .platform-strip{
+    display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;
+  }
+  .platform-pill{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--silk-dim);
+    border:1px dashed var(--line);padding:7px 12px;border-radius:20px;
+  }
+
+  /* final cta */
+  .final-cta{
+    text-align:center;padding:64px 0 70px;border-top:1px solid var(--line);
+  }
+  .final-cta h2{font-size:clamp(24px,3.4vw,32px);margin-bottom:12px;}
+  .final-cta p{color:var(--silk-dim);font-size:14.5px;max-width:460px;margin:0 auto 28px;line-height:1.6;}
+
+  /* disclaimer */
+  .caveat{
+    display:flex;gap:10px;align-items:flex-start;
+    border:1px solid var(--line);border-left:3px solid var(--amber);background:var(--panel);
+    border-radius:var(--radius);padding:14px 16px;font-size:12.5px;color:var(--silk-dim);line-height:1.6;
+    max-width:620px;margin:0 auto;text-align:left;
+  }
+  .caveat svg{flex-shrink:0;margin-top:2px;}
+
+  footer{
+    border-top:1px solid var(--line);padding:22px 0;text-align:center;
+    color:var(--silk-dim);font-size:11px;font-family:'IBM Plex Mono',monospace;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap nav-inner">
+    <div class="brand"><span class="dot"></span>Circuit <span>Copilot</span></div>
+    <a class="nav-cta" href="circuit-copilot.html">Launch app →</a>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="hero">
+    <div>
+      <div class="eyebrow">Natural language → working hardware</div>
+      <h1>Describe your device.<br>Get the <em>chips, wiring,<br>code, and steps.</em></h1>
+      <p class="lede">Circuit Copilot is an AI agent that turns a plain-English project idea into a real starting design: which chips to use and why, how to wire them together, working firmware, and an ordered build plan — from breadboard prototypes to PCB-ready advanced builds.</p>
+      <div class="cta-row">
+        <a class="btn-primary" href="circuit-copilot.html">
+          Try the system
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7H12M12 7L8 3M12 7L8 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <span class="btn-note">No signup — describe a project and go</span>
+      </div>
+    </div>
+
+    <div class="hero-art">
+      <div class="hero-art-label">Live wiring preview</div>
+      <svg viewBox="0 0 320 220" width="100%">
+        <rect x="20" y="80" width="90" height="56" rx="3" fill="#12271D" stroke="#C97D4B" stroke-width="1.6"/>
+        <text x="65" y="112" fill="#EDF3F0" font-size="10" font-family="'IBM Plex Mono',monospace" text-anchor="middle" font-weight="600">MCU</text>
+        <line x1="10" y1="92" x2="20" y2="92" stroke="#C97D4B" stroke-width="1.6"/>
+        <line x1="10" y1="108" x2="20" y2="108" stroke="#C97D4B" stroke-width="1.6"/>
+        <line x1="10" y1="124" x2="20" y2="124" stroke="#C97D4B" stroke-width="1.6"/>
+
+        <path d="M110 92 L170 92 L170 40 L220 40" fill="none" stroke="#6FE7D6" stroke-width="1.6" class="trace-flow"/>
+        <rect x="220" y="18" width="80" height="44" rx="3" fill="#12271D" stroke="#6FE7D6" stroke-width="1.4" class="pulse"/>
+        <text x="260" y="44" fill="#EDF3F0" font-size="9.5" font-family="'IBM Plex Mono',monospace" text-anchor="middle">SENSOR</text>
+
+        <path d="M110 108 L170 108 L220 108" fill="none" stroke="#E8A33D" stroke-width="1.6" class="trace-flow"/>
+        <rect x="220" y="86" width="80" height="44" rx="3" fill="#12271D" stroke="#E8A33D" stroke-width="1.4" class="pulse" style="animation-delay:.4s"/>
+        <text x="260" y="112" fill="#EDF3F0" font-size="9.5" font-family="'IBM Plex Mono',monospace" text-anchor="middle">DISPLAY</text>
+
+        <path d="M110 124 L170 124 L170 176 L220 176" fill="none" stroke="#E1614F" stroke-width="1.6" class="trace-flow"/>
+        <rect x="220" y="154" width="80" height="44" rx="3" fill="#12271D" stroke="#E1614F" stroke-width="1.4" class="pulse" style="animation-delay:.8s"/>
+        <text x="260" y="180" fill="#EDF3F0" font-size="9.5" font-family="'IBM Plex Mono',monospace" text-anchor="middle">POWER</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <div class="section-eyebrow">What it does</div>
+    <h2>One brief in, four deliverables out.</h2>
+    <p class="section-lede">You write what you want to build the way you'd explain it to a friend. The agent handles the translation into an actual hardware design.</p>
+
+    <div class="grid3">
+      <div class="feat">
+        <div class="feat-icon"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect x="6" y="6" width="14" height="14" rx="2" stroke="#C97D4B" stroke-width="1.5"/><path d="M9 6V2M13 6V2M17 6V2M9 24V20M13 24V20M17 24V20M6 9H2M6 13H2M6 17H2M20 9H24M20 13H24M20 17H24" stroke="#6FE7D6" stroke-width="1.5"/></svg></div>
+        <h3>Chip selection &amp; reasoning</h3>
+        <p>Real part families matched to your requirements, with a plain-English explanation of why each one fits — plus a priced bill of materials.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><circle cx="6" cy="6" r="2.5" stroke="#6FE7D6" stroke-width="1.5"/><circle cx="20" cy="13" r="2.5" stroke="#6FE7D6" stroke-width="1.5"/><circle cx="6" cy="20" r="2.5" stroke="#6FE7D6" stroke-width="1.5"/><path d="M8.5 6H14M14 6V13M14 13H17.5M14 13V20M14 20H8.5" stroke="#C97D4B" stroke-width="1.5"/></svg></div>
+        <h3>Wiring diagram</h3>
+        <p>An auto-generated schematic-style diagram showing how every component connects, labeled with the actual signal and pin names.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M9 8L4 13L9 18M17 8L22 13L17 18" stroke="#E8A33D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Firmware</h3>
+        <p>Complete starter code for your chosen platform — Arduino/ESP32/Pico for hobbyist builds, or MCU-level code for advanced PCB projects.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M4 7H22M4 13H22M4 19H14" stroke="#E1614F" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+        <h3>Build steps</h3>
+        <p>An ordered plan from assembly through flashing — schematic capture and layout guidance too, once you're building custom PCBs.</p>
+      </div>
+      <div class="feat">
+        <div class="feat-icon"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect x="3" y="9" width="8" height="8" rx="1.5" stroke="#6FE7D6" stroke-width="1.5"/><rect x="15" y="9" width="8" height="8" rx="1.5" stroke="#C97D4B" stroke-width="1.5"/></svg></div>
+        <h3>Hobbyist or advanced</h3>
+        <p>Start on a breadboard with off-the-shelf modules, or target bare ICs and a custom PCB layout as your project matures.</p>
+        <div class="platform-strip">
+          <span class="platform-pill">Arduino</span>
+          <span class="platform-pill">ESP32</span>
+          <span class="platform-pill">RP2040</span>
+          <span class="platform-pill">STM32</span>
+        </div>
+      </div>
+      <div class="feat">
+        <div class="feat-icon"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><path d="M13 3L4 8V16L13 21L22 16V8L13 3Z" stroke="#E8A33D" stroke-width="1.5" stroke-linejoin="round"/><path d="M13 3V13M13 13L22 8M13 13L4 8" stroke="#E8A33D" stroke-width="1.5"/></svg></div>
+        <h3>Grounded output</h3>
+        <p>Concrete part numbers and pin roles instead of generic suggestions — a real starting point, not a vague sketch.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="section-eyebrow">How it works</div>
+    <h2>From idea to build plan in one pass.</h2>
+    <p class="section-lede">No hardware background required to start — just describe the thing you're trying to build.</p>
+
+    <ol class="steps">
+      <li class="step">
+        <div class="step-num"></div>
+        <div>
+          <h3>Write your brief</h3>
+          <p>Describe the device in plain language: what it senses or controls, how it's powered, and any constraints that matter to you.</p>
+        </div>
+      </li>
+      <li class="step">
+        <div class="step-num"></div>
+        <div>
+          <h3>Choose your build target</h3>
+          <p>Hobbyist for breadboard-friendly modules and Arduino-style code, or Advanced for bare ICs and custom-PCB-oriented guidance.</p>
+        </div>
+      </li>
+      <li class="step">
+        <div class="step-num"></div>
+        <div>
+          <h3>The agent designs the circuit</h3>
+          <p>It selects chips, wires them together, writes firmware, and lays out a build plan — all generated together so they stay consistent.</p>
+        </div>
+      </li>
+      <li class="step">
+        <div class="step-num"></div>
+        <div>
+          <h3>Review, copy, build</h3>
+          <p>Check the diagram and BOM, copy the firmware, and follow the numbered steps — or refine the brief and generate again.</p>
+        </div>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<div class="final-cta">
+  <div class="wrap">
+    <h2>Describe it. We'll wire it.</h2>
+    <p>Every field is a real starting point — chips, wiring, code, and steps generated together from one description.</p>
+    <a class="btn-primary" href="circuit-copilot.html" style="margin-bottom:26px;">
+      Try the system
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7H12M12 7L8 3M12 7L8 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    <div class="caveat">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6.5" stroke="#E8A33D" stroke-width="1.3"/><path d="M7.5 4.5V8.5" stroke="#E8A33D" stroke-width="1.3" stroke-linecap="round"/><circle cx="7.5" cy="10.7" r="0.9" fill="#E8A33D"/></svg>
+      <span>Component picks, pricing, and code are AI-generated starting points. Verify datasheets and pin-outs before ordering parts or powering anything on.</span>
+    </div>
+  </div>
+</div>
+
+<footer>Circuit Copilot — an experimental hardware design agent</footer>
+
+</body>
+</html>
