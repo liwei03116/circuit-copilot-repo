@@ -20,16 +20,36 @@
     --danger:#E1614F;
     --line:#1F3A2C;
     --radius:3px;
+    --grid-dot:rgba(111,231,214,0.06);
+    /* the schematic canvas always renders dark — its SVG uses hardcoded
+       colors tuned for a dark board, independent of page theme */
+    --canvas-bg:#0B141C;
+    --canvas-line:#1F3A2C;
+  }
+  :root[data-theme="light"]{
+    --ink:#F5F7F4;
+    --panel:#FFFFFF;
+    --panel-2:#EEF3EF;
+    --copper:#B4632F;
+    --copper-dim:#8a5836;
+    --cyan:#0E8A79;
+    --silk:#12201A;
+    --silk-dim:#5B6E64;
+    --amber:#B9770E;
+    --danger:#C6432F;
+    --line:#DCE5DE;
+    --grid-dot:rgba(14,138,121,0.07);
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
     background:
-      radial-gradient(circle at 1px 1px, rgba(111,231,214,0.06) 1px, transparent 1px) 0 0/28px 28px,
+      radial-gradient(circle at 1px 1px, var(--grid-dot) 1px, transparent 1px) 0 0/28px 28px,
       var(--ink);
     color:var(--silk);
     font-family:'IBM Plex Sans', sans-serif;
     min-height:100vh;
+    transition:background-color .2s ease, color .2s ease;
   }
   @media (prefers-reduced-motion: reduce){
     *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
@@ -37,7 +57,27 @@
 
   .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 60px;}
 
-  header{display:flex;flex-direction:column;gap:6px;margin-bottom:26px;border-bottom:1px solid var(--line);padding-bottom:18px;}
+  header{display:flex;flex-direction:column;gap:6px;margin-bottom:26px;border-bottom:1px solid var(--line);padding-bottom:18px;position:relative;}
+  .theme-toggle{
+    position:absolute;top:0;right:0;
+    display:flex;align-items:center;gap:7px;
+    background:var(--panel);border:1px solid var(--line);border-radius:20px;
+    padding:6px 12px 6px 6px;cursor:pointer;
+    font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--silk-dim);
+    transition:border-color .15s, background-color .2s ease, color .2s ease;
+  }
+  .theme-toggle:hover{border-color:var(--cyan);}
+  .theme-toggle:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;}
+  .theme-toggle .icon-track{
+    width:30px;height:17px;border-radius:10px;background:var(--ink);border:1px solid var(--line);
+    position:relative;flex-shrink:0;transition:background-color .2s ease;
+  }
+  .theme-toggle .icon-dot{
+    width:11px;height:11px;border-radius:50%;background:var(--copper);
+    position:absolute;top:2px;left:2px;transition:transform .2s ease, background-color .2s ease;
+  }
+  :root[data-theme="light"] .theme-toggle .icon-dot{transform:translateX(13px);}
+  @media (max-width:520px){.theme-toggle{position:static;margin-bottom:12px;align-self:flex-start;}}
   .eyebrow{
     font-family:'IBM Plex Mono',monospace;
     font-size:11px;letter-spacing:.18em;text-transform:uppercase;
@@ -249,7 +289,7 @@
   .step p{margin:0;font-size:13px;color:var(--silk-dim);line-height:1.55;}
 
   /* diagram */
-  .diagram-wrap{border:1px solid var(--line);border-radius:var(--radius);background:var(--ink);overflow:auto;}
+  .diagram-wrap{border:1px solid var(--canvas-line);border-radius:var(--radius);background:var(--canvas-bg);overflow:auto;}
   .diagram-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--silk-dim);}
   .diagram-legend span{display:inline-flex;align-items:center;gap:6px;}
   .swatch{width:10px;height:10px;border-radius:2px;display:inline-block;}
@@ -270,6 +310,10 @@
 <body>
 <div class="wrap">
   <header>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light and dark mode">
+      <span class="icon-track"><span class="icon-dot"></span></span>
+      <span id="themeToggleLabel">Dark</span>
+    </button>
     <div class="eyebrow">Natural language → hardware</div>
     <h1>Circuit <span>Copilot</span></h1>
     <p class="sub">Describe what you want to build in plain English. Get a chip list with reasoning, a wiring diagram, working firmware, and the steps to bring it to life.</p>
@@ -378,6 +422,23 @@
 </div>
 
 <script>
+  (function initTheme(){
+  const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+  let theme = prefersLight ? 'dark' : 'light';
+
+  function applyTheme(t){
+    theme = t;
+    document.documentElement.setAttribute('data-theme', t);
+    document.getElementById('themeToggleLabel').textContent = t === 'light' ? 'Light' : 'Dark';
+    document.getElementById('themeToggle').setAttribute('aria-pressed', t === 'light');
+  }
+
+  applyTheme(theme);
+
+  document.getElementById('themeToggle').addEventListener('click', ()=>{
+    applyTheme(theme === 'light' ? 'dark' : 'light');
+  });
+})();
 let state = { platform: 'hobbyist', provider: '' };
 let apiKeys = { gemini: '', anthropic: '', openai: '', flux: '', cursor: '', copilot: '', circuitmind: '', wokwi: '' };
 
