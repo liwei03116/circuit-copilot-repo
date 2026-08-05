@@ -1,4 +1,4 @@
-# Circuit Copilot
+# Circuit Aide
 
 An AI agent that turns a plain-English hardware project description into a
 starting design: chip selection with reasoning, a wiring diagram, working
