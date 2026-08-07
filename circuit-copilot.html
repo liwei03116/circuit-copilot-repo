@@ -274,6 +274,47 @@
 
   /* steps */
   .steps{list-style:none;margin:0;padding:0;counter-reset:step;}
+
+  /* mechanical / 3D parts */
+  .mech-empty{
+    color:var(--silk-dim);font-size:13px;line-height:1.6;
+    border:1px dashed var(--line);border-radius:var(--radius);padding:20px;text-align:center;
+  }
+  .mech-card{
+    border:1px solid var(--line);border-radius:var(--radius);background:var(--panel-2);
+    margin-bottom:16px;overflow:hidden;
+  }
+  .mech-card-body{display:grid;grid-template-columns:220px 1fr;gap:0;}
+  @media (max-width:640px){.mech-card-body{grid-template-columns:1fr;}}
+  .mech-canvas-wrap{
+    background:var(--canvas-bg);border-right:1px solid var(--canvas-line);
+    display:flex;align-items:center;justify-content:center;min-height:200px;
+  }
+  @media (max-width:640px){.mech-canvas-wrap{border-right:none;border-bottom:1px solid var(--canvas-line);}}
+  .mech-info{padding:16px 18px;}
+  .mech-info h4{margin:0 0 6px;font-family:'IBM Plex Mono',monospace;color:var(--copper);font-size:14px;}
+  .mech-dims{
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--cyan);margin-bottom:8px;
+  }
+  .mech-info p{margin:4px 0;font-size:13px;line-height:1.55;color:var(--silk-dim);}
+  .mech-info p b{color:var(--silk);font-weight:600;}
+  .mech-scad-toggle{
+    background:transparent;border:1px solid var(--line);color:var(--cyan);
+    padding:6px 12px;border-radius:var(--radius);cursor:pointer;font-family:'IBM Plex Mono',monospace;
+    font-size:11px;margin-top:8px;
+  }
+  .mech-scad-toggle:hover{border-color:var(--cyan);}
+  .mech-scad{display:none;}
+  .mech-scad.open{display:block;}
+  .mech-scad pre{
+    margin-top:10px;background:var(--ink);border:1px solid var(--line);border-radius:var(--radius);
+    padding:12px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;line-height:1.6;color:var(--silk);
+    overflow-x:auto;
+  }
+  .mech-note{
+    font-size:11px;color:var(--silk-dim);margin-top:14px;line-height:1.6;
+    border-top:1px solid var(--line);padding-top:12px;
+  }
   .step{
     display:grid;grid-template-columns:34px 1fr;gap:14px;
     padding:14px 0;border-bottom:1px solid var(--line);
@@ -306,6 +347,7 @@
 
   footer{margin-top:30px;text-align:center;color:var(--silk-dim);font-size:11px;font-family:'IBM Plex Mono',monospace;}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -384,6 +426,7 @@
           <button class="tab active" data-tab="diagram">Diagram</button>
           <button class="tab" data-tab="bom">Chips &amp; BOM</button>
           <button class="tab" data-tab="code">Firmware</button>
+          <button class="tab" data-tab="mechanical">3D Model</button>
           <button class="tab" data-tab="steps">Build steps</button>
         </div>
 
@@ -409,6 +452,13 @@
             </div>
             <pre id="codeBlock"></pre>
           </div>
+        </div>
+
+        <div class="tab-panel" id="panel-mechanical">
+          <div id="mechanicalEmpty" class="mech-empty">
+            No custom physical part needed for this build — everything here uses off-the-shelf enclosures/mounts. Describe a frame, boom, bracket, or mount in your brief to get 3D parts generated.
+          </div>
+          <div id="mechanicalParts"></div>
         </div>
 
         <div class="tab-panel" id="panel-steps">
@@ -619,7 +669,21 @@ Schema:
   "chips": [ { "name": string, "category": string, "purpose": string, "why_this_chip": string } ],
   "bom": [ { "item": string, "qty": number, "est_price_usd": number, "notes": string } ],
   "code": { "language": string, "filename": string, "content": string },  // full working starter firmware, real syntax, commented
-  "steps": [ { "title": string, "description": string } ]  // ordered build/assembly/programming steps, 5-9 steps
+  "steps": [ { "title": string, "description": string } ],  // ordered build/assembly/programming steps, 5-9 steps
+  "mechanical_parts": [
+    {
+      "name": string,                    // e.g. "Front-left motor boom"
+      "shape": "box"|"cylinder"|"tube",   // closest primitive approximation
+      "dimensions_mm": {                  // include only the keys relevant to the shape
+        "length": number, "width": number, "height": number,       // for box
+        "diameter": number,                                        // for cylinder (with height)
+        "outer_diameter": number, "inner_diameter": number          // for tube (with height)
+      },
+      "material": string,                 // e.g. "PLA+, 3 walls, 40% infill" or "6061 aluminum"
+      "notes": string,                    // mounting, fit, load-bearing notes
+      "openscad_code": string             // a complete, valid OpenSCAD .scad snippet that models this part
+    }
+  ]  // OMIT this key entirely (do not include an empty array) if the project has no custom physical/structural part — e.g. a desk sensor in an off-the-shelf enclosure doesn't need one, but a drone frame, boom, mount, or bracket does
 }
 
 Rules:
@@ -630,6 +694,7 @@ Rules:
 - Code must be complete enough to compile/run conceptually for the chosen platform, not a fragment.
 - Be concrete: real part families, real pin roles, realistic prices.
 - Keep "code.content" focused and complete — under ~120 lines. Prioritize a short, fully working, fully closed program over a long one. NEVER let the response get cut off: finish the entire JSON object, including the final closing brace, well within your output budget.
+- Only include "mechanical_parts" when the brief genuinely involves a physical structural part to fabricate (drone frame/boom/arm, enclosure, mount, bracket, chassis). Keep it to 1-4 parts, realistic dimensions in millimeters, and each "openscad_code" must be short (under 25 lines) and valid OpenSCAD syntax that matches the stated dimensions_mm.
 - Output raw JSON only.`;
 
 document.getElementById('promptView').textContent = SYSTEM_PROMPT;
@@ -870,6 +935,131 @@ function escapeHtml(str){
   return (str||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+let activeViewers = [];
+
+function stopActiveViewers(){
+  activeViewers.forEach(v => v.cancel());
+  activeViewers = [];
+}
+
+function buildPartGeometry(part){
+  const d = part.dimensions_mm || {};
+  const scale = 0.05; // mm -> scene units, keeps parts a reasonable on-screen size
+  if(part.shape === 'cylinder'){
+    const dia = Number(d.diameter) || 20;
+    const h = Number(d.height) || 40;
+    return new THREE.CylinderGeometry(dia/2*scale, dia/2*scale, h*scale, 28);
+  }
+  if(part.shape === 'tube'){
+    const outerD = Number(d.outer_diameter) || 20;
+    const innerD = Number(d.inner_diameter) || Math.max(outerD - 4, 2);
+    const h = Number(d.height) || 40;
+    // approximate a tube with an outer cylinder shell (Three r128 has no easy CSG for a true hollow tube)
+    const outer = new THREE.CylinderGeometry(outerD/2*scale, outerD/2*scale, h*scale, 28, 1, true);
+    return outer;
+  }
+  // default: box
+  const l = Number(d.length) || 60;
+  const w = Number(d.width) || 15;
+  const hgt = Number(d.height) || 10;
+  return new THREE.BoxGeometry(l*scale, hgt*scale, w*scale);
+}
+
+function mountPartViewer(canvasEl, part){
+  const width = canvasEl.clientWidth || 220;
+  const height = canvasEl.clientHeight || 200;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(38, width/height, 0.1, 100);
+  camera.position.set(3.2, 2.4, 3.6);
+  camera.lookAt(0, 0, 0);
+
+  const renderer = new THREE.WebGLRenderer({ canvas: canvasEl, antialias: true, alpha: true });
+  renderer.setSize(width, height, false);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+  const key = new THREE.DirectionalLight(0xffffff, 0.9);
+  key.position.set(4, 5, 3);
+  scene.add(key);
+  const rim = new THREE.DirectionalLight(0x6fe7d6, 0.35);
+  rim.position.set(-3, -2, -3);
+  scene.add(rim);
+
+  const geometry = buildPartGeometry(part);
+  const material = new THREE.MeshStandardMaterial({
+    color: 0xc97d4b, metalness: 0.15, roughness: 0.55,
+    side: part.shape === 'tube' ? THREE.DoubleSide : THREE.FrontSide
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+  scene.add(mesh);
+
+  const edges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(geometry),
+    new THREE.LineBasicMaterial({ color: 0x6fe7d6, transparent: true, opacity: 0.4 })
+  );
+  mesh.add(edges);
+
+  let frameId;
+  function tick(){
+    mesh.rotation.y += 0.008;
+    mesh.rotation.x = 0.35;
+    renderer.render(scene, camera);
+    frameId = requestAnimationFrame(tick);
+  }
+  tick();
+  activeViewers.push({ cancel: () => cancelAnimationFrame(frameId) });
+}
+
+function dimsLine(part){
+  const d = part.dimensions_mm || {};
+  if(part.shape === 'cylinder') return `⌀${d.diameter||'?'}mm × ${d.height||'?'}mm tall`;
+  if(part.shape === 'tube') return `⌀${d.outer_diameter||'?'}/${d.inner_diameter||'?'}mm × ${d.height||'?'}mm tall`;
+  return `${d.length||'?'} × ${d.width||'?'} × ${d.height||'?'} mm (L×W×H)`;
+}
+
+function renderMechanicalParts(parts){
+  stopActiveViewers();
+  const container = document.getElementById('mechanicalParts');
+  const emptyEl = document.getElementById('mechanicalEmpty');
+
+  if(!parts.length){
+    container.innerHTML = '';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  container.innerHTML = parts.map((part, i) => `
+    <div class="mech-card">
+      <div class="mech-card-body">
+        <div class="mech-canvas-wrap"><canvas id="mechCanvas${i}" width="220" height="200" style="width:100%;height:200px;"></canvas></div>
+        <div class="mech-info">
+          <h4>${escapeHtml(part.name || 'Part')}</h4>
+          <div class="mech-dims">${escapeHtml(dimsLine(part))}</div>
+          <p><b>Material:</b> ${escapeHtml(part.material || 'Not specified')}</p>
+          <p>${escapeHtml(part.notes || '')}</p>
+          <button class="mech-scad-toggle" data-idx="${i}">View OpenSCAD code</button>
+          <div class="mech-scad" id="mechScad${i}"><pre>${escapeHtml(part.openscad_code || '// no code returned')}</pre></div>
+        </div>
+      </div>
+    </div>
+  `).join('') + `<div class="mech-note">Generated dimensions and OpenSCAD code are a rough starting point — open the code in <a href="https://openscad.org" target="_blank" rel="noopener" style="color:var(--cyan)">OpenSCAD</a> (free) to inspect, adjust tolerances, and export a real STL/STEP file for slicing or CNC.</div>`;
+
+  parts.forEach((part, i) => {
+    const canvas = document.getElementById('mechCanvas' + i);
+    if(canvas && window.THREE) mountPartViewer(canvas, part);
+  });
+
+  document.querySelectorAll('.mech-scad-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const view = document.getElementById('mechScad' + btn.dataset.idx);
+      view.classList.toggle('open');
+      btn.textContent = view.classList.contains('open') ? 'Hide OpenSCAD code' : 'View OpenSCAD code';
+    });
+  });
+}
+
 function renderResults(data){
   document.getElementById('emptyState').style.display = 'none';
   document.getElementById('results').style.display = 'block';
@@ -916,6 +1106,8 @@ function renderResults(data){
       </div>
     </li>
   `).join('');
+
+  renderMechanicalParts(data.mechanical_parts || []);
 }
 
 document.getElementById('copyCodeBtn').addEventListener('click', ()=>{
