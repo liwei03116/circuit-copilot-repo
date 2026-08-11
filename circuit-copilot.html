@@ -374,10 +374,10 @@
 
       <div class="field-label">AI module</div>
       <select id="providerSelect" class="text-input">
-        <option value="" selected disabled hidden>Choose a module</option>
+        <option value="" disabled hidden>Choose a module</option>
         <option value="openai">ChatGPT</option>
         <option value="anthropic">Claude</option>
-        <option value="gemini">Google Gemini</option>
+        <option value="gemini" selected>Google Gemini — Free</option>
         <option value="flux">Flux AI</option>
         <option value="cursor">Cursor</option>
         <option value="copilot">GitHub Copilot</option>
@@ -385,9 +385,9 @@
         <option value="wokwi">Wokwi</option>
       </select>
 
-      <div class="field-label" id="apiKeyLabel">Google Gemini API key</div>
+      <div class="field-label" id="apiKeyLabel">Google Gemini</div>
       <div class="key-input-row">
-        <input type="password" id="apiKey" class="text-input" placeholder="Paste your free Gemini API key" autocomplete="off">
+        <input type="password" id="apiKey" class="text-input" placeholder="No API key required" autocomplete="off" disabled>
         <button type="button" class="key-eye" id="keyEyeBtn" aria-label="Show key">👁</button>
       </div>
       <div class="key-status" id="keyStatus"></div>
@@ -489,16 +489,21 @@
     applyTheme(theme === 'light' ? 'dark' : 'light');
   });
 })();
-let state = { platform: 'hobbyist', provider: '' };
+// Gemini is called through the Vercel backend so visitors do not need their own API key.
+// Replace this URL with your deployed Vercel API endpoint.
+const GEMINI_API_URL = "https://circuit-copilot-repo.vercel.app/api/generate";
+
+let state = { platform: 'hobbyist', provider: 'gemini' };
 let apiKeys = { gemini: '', anthropic: '', openai: '', flux: '', cursor: '', copilot: '', circuitmind: '', wokwi: '' };
 
 const PROVIDERS = {
   gemini: {
     label: 'Google Gemini',
-    keyLabel: 'Google Gemini API key',
-    placeholder: 'Paste your free Gemini API key',
-    note: 'Free, no card needed, at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com</a>. Kept only in this browser tab.',
-    supported: true
+    keyLabel: 'Google Gemini',
+    placeholder: 'No API key required',
+    note: 'Free for visitors — Circuit Copilot uses the site backend to access Google Gemini. Your API key is never entered or stored in this browser.',
+    supported: true,
+    backend: true
   },
   anthropic: {
     label: 'Claude',
@@ -568,15 +573,23 @@ function refreshProviderUI(){
   document.getElementById('apiKeyLabel').textContent = p.keyLabel;
   keyInput.value = apiKeys[state.provider] || '';
 
-  if(!p.supported){
+  if(p.backend){
+    keyInput.value = '';
     keyInput.placeholder = p.placeholder;
+    keyInput.disabled = true;
     noteEl.innerHTML = p.note;
-  } else if(hasBuiltInKey(state.provider)){
-    keyInput.placeholder = 'Using the built-in key — paste your own to override';
-    noteEl.innerHTML = 'No key needed to try this module — a built-in key is already wired up. ' + p.note;
   } else {
-    keyInput.placeholder = p.placeholder;
-    noteEl.innerHTML = p.note;
+    keyInput.disabled = false;
+    if(!p.supported){
+      keyInput.placeholder = p.placeholder;
+      noteEl.innerHTML = p.note;
+    } else if(hasBuiltInKey(state.provider)){
+      keyInput.placeholder = 'Using the built-in key — paste your own to override';
+      noteEl.innerHTML = 'No key needed to try this module — a built-in key is already wired up. ' + p.note;
+    } else {
+      keyInput.placeholder = p.placeholder;
+      noteEl.innerHTML = p.note;
+    }
   }
   updateKeyStatus();
 }
@@ -588,6 +601,13 @@ function updateKeyStatus(){
     statusEl.className = 'key-status builtin';
     return;
   }
+  const providerConfig = PROVIDERS[state.provider];
+  if(providerConfig && providerConfig.backend){
+    statusEl.textContent = '● Gemini backend enabled — no key required';
+    statusEl.className = 'key-status builtin';
+    return;
+  }
+
   const typed = (apiKeys[state.provider] || '').trim();
   if(typed){
     statusEl.textContent = `✓ Key entered (${typed.length} characters)`;
@@ -616,7 +636,7 @@ document.getElementById('providerSelect').addEventListener('change', (e)=>{
 });
 
 document.getElementById('apiKey').addEventListener('input', (e)=>{
-  if(!state.provider) return;
+  if(!state.provider || PROVIDERS[state.provider].backend) return;
   apiKeys[state.provider] = e.target.value.trim();
   updateKeyStatus();
 });
@@ -705,14 +725,11 @@ const MODEL_IDS = {
   openai: "gpt-5.6-terra" // model names shift often — edit here if a provider retires this one
 };
 
-// Optional built-in key so visitors can use Gemini with zero setup.
-// ⚠️ Anything here ships to every visitor's browser and is visible in page
-// source / devtools — do NOT put a paid or high-limit key here. If you fill
-// this in, go restrict it first: Google AI Studio → your key → restrict to
-// "HTTP referrers" → add your github.io domain, so it only works from your
-// site. Leave blank ('') to require every visitor to paste their own key.
+// No Gemini API key is stored in this HTML.
+// Gemini requests go through GEMINI_API_URL, where the secret key is stored
+// as a Vercel environment variable named GEMINI_API_KEY.
 const BUILT_IN_KEYS = {
-  gemini: "AQ.Ab8RN6LAhXYW8q-VkMqg1tyo_nHkugc6g2L8Sfba17RnzoB6Kg",     // e.g. "AIzaSy..." — get one free at aistudio.google.com/apikey
+  gemini: "",
   anthropic: "",
   openai: ""
 };
@@ -725,26 +742,36 @@ async function requestDesign(brief, platform, provider, apiKey, extraNote){
   const userMsg = `Build target: ${platform}\n\nProject description: ${brief}` + (extraNote ? `\n\n${extraNote}` : '');
 
   if(provider === 'gemini'){
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_IDS.gemini}:generateContent?key=${encodeURIComponent(apiKey)}`;
-    const response = await fetch(url, {
+    if(!GEMINI_API_URL || GEMINI_API_URL.includes('YOUR-VERCEL-DOMAIN')){
+      throw new Error('Gemini backend URL is not configured. Update GEMINI_API_URL in circuit-copilot.html.');
+    }
+
+    // The backend owns the Gemini API key. The browser only sends the prompt.
+    const response = await fetch(GEMINI_API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents: [{ role: "user", parts: [{ text: userMsg }] }],
-        generationConfig: { maxOutputTokens: 8000, responseMimeType: "application/json" }
+        prompt: SYSTEM_PROMPT + "\n\n" + userMsg
       })
     });
+
     if (!response.ok) {
-        const err = await response.text();
-        console.error(err);
-        throw new Error(err);
+      let message = `API error: ${response.status}`;
+      try {
+        const errData = await response.json();
+        if(errData && errData.error) message = errData.error;
+      } catch (_) {}
+      throw new Error(message);
     }
+
     const data = await response.json();
-    const candidate = (data.candidates || [])[0];
-    const truncated = candidate && candidate.finishReason === 'MAX_TOKENS';
-    const text = candidate ? (candidate.content.parts || []).map(p => p.text || "").join("\n") : "";
-    return { cleaned: stripFences(text), truncated };
+    const text = data.text || data.output || data.content || "";
+    if(!text) throw new Error("Gemini backend returned an empty response.");
+
+    return {
+      cleaned: stripFences(text),
+      truncated: false
+    };
   }
 
   if(provider === 'anthropic'){
@@ -1136,12 +1163,14 @@ document.getElementById('goBtn').addEventListener('click', async ()=>{
   }
 
   const typedKey = (apiKeys[provider] || '').trim();
-  const apiKey = typedKey || BUILT_IN_KEYS[provider];
+  const apiKey = PROVIDERS[provider].backend
+    ? ''
+    : (typedKey || BUILT_IN_KEYS[provider]);
 
-  if(!apiKey){
+  if(!PROVIDERS[provider].backend && !apiKey){
     const msg = state.provider
       ? `Paste your ${PROVIDERS[provider].keyLabel} first.`
-      : 'No built-in Gemini key is set up yet — choose a module above and paste an API key, or ask the site owner to add a built-in Gemini key.';
+      : 'No Gemini backend is configured yet.';
     setLog(msg, true);
     return;
   }
