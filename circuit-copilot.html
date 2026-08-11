@@ -742,7 +742,7 @@ async function requestDesign(brief, platform, provider, apiKey, extraNote){
   const userMsg = `Build target: ${platform}\n\nProject description: ${brief}` + (extraNote ? `\n\n${extraNote}` : '');
 
   if(provider === 'gemini'){
-    if(!GEMINI_API_URL || GEMINI_API_URL.includes('YOUR-VERCEL-DOMAIN')){
+    if(!GEMINI_API_URL || GEMINI_API_URL.includes('circuit-copilot-repo')){
       throw new Error('Gemini backend URL is not configured. Update GEMINI_API_URL in circuit-copilot.html.');
     }
 
