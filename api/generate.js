@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 
 export default async function handler(req, res) {
-    // CORS
+    // Allow your GitHub Pages frontend
     res.setHeader(
         "Access-Control-Allow-Origin",
         "https://liwei03116.github.io"
@@ -17,12 +17,11 @@ export default async function handler(req, res) {
         "Content-Type"
     );
 
-    // Browser preflight
+    // Handle browser CORS preflight
     if (req.method === "OPTIONS") {
         return res.status(200).end();
     }
 
-    // Only POST
     if (req.method !== "POST") {
         return res.status(405).json({
             error: "Method not allowed"
@@ -30,15 +29,11 @@ export default async function handler(req, res) {
     }
 
     try {
-        const {
-            systemPrompt,
-            userMessage,
-            maxOutputTokens = 8000
-        } = req.body || {};
+        const { prompt } = req.body || {};
 
-        if (!userMessage || typeof userMessage !== "string") {
+        if (!prompt || typeof prompt !== "string") {
             return res.status(400).json({
-                error: "userMessage is required"
+                error: "Prompt is required"
             });
         }
 
@@ -56,15 +51,7 @@ export default async function handler(req, res) {
 
         const response = await ai.models.generateContent({
             model: "gemini-3.6-flash",
-
-            systemInstruction: systemPrompt || "",
-
-            contents: userMessage,
-
-            config: {
-                maxOutputTokens: Number(maxOutputTokens) || 8000,
-                responseMimeType: "application/json"
-            }
+            contents: prompt
         });
 
         return res.status(200).json({

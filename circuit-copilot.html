@@ -736,14 +736,18 @@ async function requestDesign(brief, platform, provider, apiKey, extraNote){
   if(provider === 'gemini' && !apiKey){
     // No key typed — route through the secure backend proxy instead of
     // calling Google directly, so no key is ever exposed in this file.
+    // The proxy takes one combined prompt string and returns { text }.
+    const combinedPrompt = `${SYSTEM_PROMPT}\n\n${userMsg}`;
     const response = await fetch(GEMINI_API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ systemPrompt: SYSTEM_PROMPT, userMessage: userMsg, maxOutputTokens: 8000 })
+      body: JSON.stringify({ prompt: combinedPrompt })
     });
     if(!response.ok) throw new Error(apiErrorMessage(response.status, 'gemini (backend)'));
     const data = await response.json();
-    return { cleaned: stripFences(data.text || ""), truncated: !!data.truncated };
+    // The proxy doesn't report truncation, so rely on JSON-parse failure
+    // (handled by the retry logic in callClaude) to catch cut-off responses.
+    return { cleaned: stripFences(data.text || ""), truncated: false };
   }
 
   if(provider === 'gemini'){
