@@ -9,7 +9,7 @@ firmware, and an ordered build plan.
 
 ## Live demo
 Once GitHub Pages is enabled for this repo, it will be published at:
-`https://<your-username>.github.io/<repo-name>/`
+`https://circuitaide.com/`
 
 ## Before you deploy: about the API key
 `circuit-copilot.html` lets each visitor pick a provider from a dropdown —
