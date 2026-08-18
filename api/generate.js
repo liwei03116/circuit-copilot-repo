@@ -4,7 +4,7 @@ export default async function handler(req, res) {
     // Allow your GitHub Pages frontend
     res.setHeader(
         "Access-Control-Allow-Origin",
-        "https://liwei03116.github.io"
+        "https://circuitaide.com"
     );
 
     res.setHeader(
